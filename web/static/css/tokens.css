@@ -1,0 +1,233 @@
+/* ============================================================================
+ * wgrouter — design tokens extracted from HUMAX.htm
+ *
+ * Source: HUMAX.htm (1678 lines), a saved capture of the HUMAX T3ATv2 router
+ * admin panel Home screen. Full derivation and evidence: docs/DESIGN.md
+ *
+ * The capture's stylesheet (style_TGJF.css), 11 JS files and 33 PNGs were NOT
+ * saved and do not exist on this machine. So this file has two parts:
+ *
+ *   PART 1 — EXTRACTED.  Every value traceable to a line in HUMAX.htm.
+ *   PART 2 — QUARANTINE. Values that exist ONLY in the missing stylesheet.
+ *                        NOT extracted, NOT authentic. Placeholders so the UI
+ *                        renders at all. Delete and replace wholesale when the
+ *                        real style_TGJF.css arrives.
+ *
+ * Basis tags, per docs/DESIGN.md §0.2:
+ *   [literal]    value appears verbatim in the file
+ *   [inferred]   decoded from the class-name convention (f12 -> 12px,
+ *                c464646 -> #464646, col-l-260 -> 260px). Systematic and
+ *                internally consistent, but no declaration confirms it.
+ *   [structural] derived from DOM shape
+ * ========================================================================= */
+
+:root {
+  /* =========================================================================
+   * PART 1 — EXTRACTED FROM HUMAX.htm
+   * ====================================================================== */
+
+  /* --- Color: literal ---------------------------------------------------
+   * These four are the ONLY colors stated anywhere in the file. */
+
+  --hx-blue:            #1e9bf0;  /* [literal] header band; td#headerDiv bgcolor
+                                     and div.header, lines 972 + 975 */
+  --hx-sidebar-bg:      #f1f2f3;  /* [literal] td#menuDiv bgcolor, line 986 */
+  --hx-footer-bg:       #5b5d5f;  /* [literal] footer td bgcolor, line 1657 */
+  --hx-hairline:        #dcdcdc;  /* [literal] border:1px solid #dcdcdc with
+                                     matching background-color, on 3 empty map
+                                     connector cells, lines 1156/1169/1190 */
+
+  /* --- Color: inferred from the c* utility family ------------------------
+   * Exactly four exist. Note these cover only a small minority of the page's
+   * text: the 46 label cells, 46 value cells, 10 section headers, 4 column
+   * headers, 8 nav labels and all header/footer text carry NO color class. */
+
+  --hx-text:            #464646;  /* [inferred] c464646 — page title, page
+                                     description, empty-state copy: 1090, 1100,
+                                     1591, 1593 */
+  --hx-text-dark:       #141414;  /* [inferred] c141414 — static map captions;
+                                     never on an anchor: 1203, 1211, 1221 */
+  --hx-link:            #0a87e6;  /* [inferred] c0a87e6 — THE ONLY color class
+                                     ever applied to an <a>; also the active
+                                     map-node caption: 1199, 1644 */
+  --hx-heading:         #1e1e1e;  /* [inferred] c1e1e1e — list section label,
+                                     used exactly once: 1635 */
+
+  /* --- Type scale: inferred from the f* utility family -------------------
+   * Five steps, exhaustive (no f11/f14/f15/f17/f20 exist). Nine live usages.
+   * The base body size is NOT among these — it is CSS-only. See QUARANTINE. */
+
+  --hx-fs-18:           18px;     /* [inferred] f18 — empty-state headline, 1591 */
+  --hx-fs-16:           16px;     /* [inferred] f16 — page title (the only
+                                     in-flow heading), 1090 */
+  --hx-fs-13:           13px;     /* [inferred] f13 — empty-state body, 1593 */
+  --hx-fs-12:           12px;     /* [inferred] f12 — map captions; the most
+                                     repeated size: 1199, 1203, 1211, 1221 */
+  --hx-fs-10:           10px;     /* [inferred] f10 — page description, list
+                                     section label: 1100, 1635 */
+
+  /* --- Spacing scale: measured -------------------------------------------
+   * Every gap in this design is a hand-authored spacer: 28 of 31 tables carry
+   * cellpadding="0" cellspacing="0", so NO implicit spacing exists anywhere.
+   * Reproduce this scale as-is; it is not a 4/8pt grid. */
+
+  --hx-space-3:          3px;     /* [literal] language dropdown pad rows, 966 */
+  --hx-space-5:          5px;     /* [literal] page title -> description, 1098 */
+  --hx-space-8:          8px;     /* [literal] nav icon gutter padding-left (x8);
+                                     [inferred] pr-8 on 3 col-r cells */
+  --hx-space-9:          9px;     /* [literal] THE PANEL INSET — the dominant
+                                     step. 19 occurrences; opens all 10 panels */
+  --hx-space-10:        10px;     /* [literal] sidebar top spacer, 987;
+                                     [inferred] pl-10 on password toggles */
+  --hx-space-11:        11px;     /* [literal] USB/Printer panel bottom inset —
+                                     the one inconsistency in the scale, where
+                                     the other 8 panels close with 9px */
+  --hx-space-14:        14px;     /* [literal] header LED row -> button bar, 975;
+                                     footer separator padding, 1657 */
+  --hx-space-15:        15px;     /* [literal] contentDiv top/bottom margin, 1078 */
+  --hx-space-20:        20px;     /* [literal] empty-state top and bottom, 1588/1594 */
+  --hx-space-30:        30px;     /* [literal] title block -> first panel, 1104 */
+  --hx-space-40:        40px;     /* [literal] contentDiv side margin, 1078 —
+                                     largest horizontal value */
+  --hx-space-44:        44px;     /* [literal] map connector offset (= 88 / 2),
+                                     1153/1166/1187 — largest vertical value */
+
+  /* --- Layout dimensions -------------------------------------------------
+   * NOTE the arithmetic does not close: the body grid declares width=982 but
+   * its cells require 260 + 750 = 1010 before margins. HTML width is a
+   * PREFERRED width, so the table renders wider. The true rendered width is
+   * not derivable from the file. See docs/DESIGN.md §1. */
+
+  --hx-shell-w:        982px;     /* [literal] body grid table, 983 (authored) */
+  --hx-shell-min-h:    600px;     /* [literal] same table height attr, 983 */
+  --hx-sidebar-w:      260px;     /* [literal] td#menuDiv width="260px", 986 */
+  --hx-content-w:      750px;     /* [literal] content measure table, 1081 */
+  --hx-label-col-w:    260px;     /* [inferred] col-l-260, x46 */
+  --hx-footer-h:        60px;     /* [literal] footer td height, 1657 */
+  --hx-nav-row-h:       36px;     /* [literal] nav li height, x8 */
+  --hx-list-label-h:    33px;     /* [inferred] h33, 1635 */
+  --hx-connector-w:    140px;     /* [literal] map connector cells (x6) and the
+                                     language dropdown table, 966 */
+
+  /* --- Borders -----------------------------------------------------------
+   * Exactly ONE border is declared in the entire file. Every table is
+   * border="0". Panel rules, row separators and header underlines are all
+   * CSS-only -> QUARANTINE. */
+
+  --hx-border-w:         1px;     /* [literal] 1156/1169/1190 */
+  --hx-border:           1px solid var(--hx-hairline);
+
+  /* --- Weight ------------------------------------------------------------
+   * Total weight evidence in 1678 lines: one "bold" class (1090) and five
+   * live <b> elements (1591, 1637, 1639, 1640, 1641). */
+
+  --hx-fw-bold:          bold;    /* [structural] */
+}
+
+/* ============================================================================
+ * PART 2 — QUARANTINE: NOT EXTRACTED
+ * ============================================================================
+ *
+ * Everything below exists ONLY in the missing style_TGJF.css or the missing
+ * PNGs. These are PLACEHOLDERS chosen to be neutral and unobtrusive so the UI
+ * renders during development. They are NOT the HUMAX design.
+ *
+ * Do not treat any value here as extracted, and do not let them propagate into
+ * docs/DESIGN.md. When the real stylesheet arrives, delete this entire block
+ * and replace it with real declarations.
+ *
+ * Priority order for closing these, per docs/DESIGN.md §12:
+ *   1. style_TGJF.css  (closes ~80% of this block)
+ *   2. a full-width screenshot of home.htm as rendered
+ *   3. the /style/ PNG directory (33 files)
+ *   4. the HTML of any writable page  (the ONLY source of form-control styling)
+ * ========================================================================= */
+
+:root {
+  /* --- Font stack — UNKNOWN ----------------------------------------------
+   * Zero occurrences of "font" in the file. The single hard constraint the
+   * file DOES impose: the panel rendered Thai. The language dropdown contains
+   * the literal UTF-8 string "ภาษาไทย" at line 966, so whatever the real stack
+   * was, it covered Thai and Latin. This placeholder honours that constraint
+   * and nothing more. */
+  --hx-font: system-ui, "Segoe UI", Tahoma, "Noto Sans Thai", "Leelawadee UI", Arial, sans-serif;
+
+  /* --- Base body size — UNKNOWN ------------------------------------------
+   * The f* scale covers only 9 special cells. Every high-frequency text style
+   * (col-l-260, col-r, col-tbl-th, col-list-th, nav, header, footer) has no
+   * size class at all. 12px is chosen because f12 is the most repeated
+   * explicit size on the page — an argument, not evidence. */
+  --hx-fs-base: 12px;
+
+  /* --- Line-height — UNKNOWN, and load-bearing ---------------------------
+   * The 8 inter-panel gaps in the content column are bare <br> elements, so
+   * the most visible vertical rhythm in the design IS one line-height. Also
+   * needs to be generous enough for Thai. */
+  --hx-line-height: 1.5;
+
+  /* --- Letter-spacing — UNKNOWN (zero evidence of any kind) */
+  --hx-letter-spacing: normal;
+
+  /* --- Surfaces — UNKNOWN ------------------------------------------------
+   * Only 4 colors are stated in the file and none of them is a page, content,
+   * panel or table-header background. */
+  --hx-page-bg:         #ffffff;
+  --hx-content-bg:      #ffffff;
+  --hx-panel-bg:        #ffffff;
+  --hx-panel-th-bg:     #f1f2f3;  /* echoes the one real neutral we have */
+  --hx-row-alt-bg:      #fafafa;
+
+  /* --- State colors — UNKNOWN, and genuinely absent -----------------------
+   * This is the most consequential gap for wgrouter. In HUMAX, status was
+   * signalled by PNG artwork, not color: class="on" occurs exactly ONCE in
+   * 1678 lines (line 1234) with no color evidence, and there is NO error or
+   * warning UI anywhere in the file — failures went to a native alert().
+   *
+   * wgrouter needs three peer states (online / idle / never-connected) plus
+   * form validation errors, so these must be decided rather than extracted.
+   * See docs/DESIGN.md §3.3. */
+  --hx-state-ok:        #3c9a3c;
+  --hx-state-idle:      #c8901e;
+  --hx-state-none:      #9a9a9a;
+  --hx-state-error:     #c23b3b;
+
+  /* --- Radii, shadows, gradients — UNKNOWN -------------------------------
+   * Zero occurrences of "radius", zero shadows, zero gradients in the file.
+   * The bgcolor attributes prove only that flat fallbacks existed. Square and
+   * flat is the safer default for a 2010-era panel than invented rounding. */
+  --hx-radius:            0;
+  --hx-shadow:            none;
+
+  /* --- Controls — UNKNOWN ------------------------------------------------
+   * btn-def is the ONLY button class in the whole panel (one live instance,
+   * line 1614). No primary/secondary/danger distinction is represented: the
+   * destructive Remove uses the same class as a benign Refresh.
+   *
+   * Form controls are not merely unstyled but UNREPRESENTED — the file has
+   * zero inputs, selects, checkboxes, radios, labels or fieldsets. The sole
+   * <input> is that button. */
+  --hx-btn-h:           24px;
+  --hx-btn-pad-x:       12px;
+  --hx-btn-bg:          var(--hx-blue);
+  --hx-btn-fg:          #ffffff;
+  --hx-btn-border:      1px solid var(--hx-blue);
+  --hx-input-h:         22px;
+  --hx-input-pad-x:      6px;
+  --hx-input-border:    1px solid var(--hx-hairline);
+  --hx-input-bg:        #ffffff;
+
+  /* --- Interaction — UNKNOWN ---------------------------------------------
+   * Hover exists in the file only as JS hooks whose bodies are missing
+   * (My_T_Over/My_T_Out x8, setLanguageStyle x2). There is zero :focus
+   * evidence anywhere, and 12 of 13 controls are not keyboard-focusable.
+   *
+   * The focus ring is therefore an ADDITION, not an extraction — a deliberate
+   * accessibility improvement over the original. See docs/DESIGN.md §10. */
+  --hx-nav-hover-bg:    #e4e6e8;
+  --hx-nav-active-bg:   #ffffff;
+  --hx-focus-ring:      2px solid var(--hx-link);
+
+  /* --- Motion — UNKNOWN (zero occurrences; the single "transition" match in
+   * the file is the word "Transitional" in the doctype) */
+  --hx-transition:      none;
+}

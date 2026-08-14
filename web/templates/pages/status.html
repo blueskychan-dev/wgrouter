@@ -1,0 +1,97 @@
+{{define "title"}}Status{{end}}
+{{define "heading"}}Status{{end}}
+{{define "desc"}}This page shows the current status and basic settings of the router.{{end}}
+
+{{define "content"}}
+<section class="table">
+  <h2 class="col-tbl-th">WireGuard</h2>
+  <dl class="kv">
+    <div class="kv-row"><dt class="col-l-260">Interface</dt><dd class="col-r">{{.WGInterface}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Listen Port</dt><dd class="col-r">{{.WGListenPort}}/udp</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Tunnel Subnet</dt><dd class="col-r">{{.TunnelPool}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Server Address</dt><dd class="col-r">{{.ServerIP}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Public Endpoint</dt><dd class="col-r">{{.PublicEndpoint}}</dd></div>
+    <div class="kv-row">
+      <dt class="col-l-260">Server Public Key</dt>
+      <dd class="col-r">{{if .ServerPublicKey}}<code class="key">{{.ServerPublicKey}}</code>{{else}}<span class="muted">not generated yet</span>{{end}}</dd>
+    </div>
+  </dl>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Router</h2>
+  <dl class="kv">
+    <div class="kv-row"><dt class="col-l-260">WAN Interface</dt><dd class="col-r">{{.WANInterface}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Admin Listener</dt><dd class="col-r">{{.ListenAddr}} {{if .TLSEnabled}}<span class="badge badge-ok">HTTPS</span>{{else}}<span class="badge badge-warn">HTTP</span>{{end}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Service Uptime</dt><dd class="col-r">{{.Uptime}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Database</dt><dd class="col-r">{{.DBPath}} <span class="muted">(schema v{{.SchemaVersion}})</span></dd></div>
+  </dl>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Summary</h2>
+  <dl class="kv">
+    <div class="kv-row"><dt class="col-l-260">Peers</dt><dd class="col-r">{{.PeerCount}} configured, {{.OnlineCount}} online</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Interface</dt><dd class="col-r">{{if .WGUp}}<span class="dot dot-online"></span><code>{{.WGInterface}}</code> is up{{else}}<span class="dot dot-never"></span><code>{{.WGInterface}}</code> is not present in the kernel{{end}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Port Forwards</dt><dd class="col-r">{{.ForwardCount}} configured</dd></div>
+  </dl>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Connections through port forwards</h2>
+  {{if .StatsError}}
+  <p class="field-hint pad">{{.StatsError}}</p>
+  {{else if .HasStats}}
+  <table class="list-table">
+    <thead>
+      <tr>
+        <th class="col-list-th" style="width:22%">Window</th>
+        <th class="col-list-th" style="width:20%">Total</th>
+        <th class="col-list-th" style="width:20%">Accepted</th>
+        <th class="col-list-th" style="width:20%">Dropped</th>
+        <th class="col-list-th" style="width:18%">Traffic</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Last 7 days</td><td>{{.Stats.Day7.Total}}</td><td>{{.Stats.Day7.Accepted}}</td>
+          <td>{{.Stats.Day7.Dropped}}{{if .Stats.Day7.Dropped}} <span class="f10 muted">({{printf "%.1f" .Stats.Day7.DropRate}}%)</span>{{end}}</td>
+          <td>{{.Stats.Day7.Bytes}}</td></tr>
+      <tr><td>Last 30 days</td><td>{{.Stats.Day30.Total}}</td><td>{{.Stats.Day30.Accepted}}</td>
+          <td>{{.Stats.Day30.Dropped}}{{if .Stats.Day30.Dropped}} <span class="f10 muted">({{printf "%.1f" .Stats.Day30.DropRate}}%)</span>{{end}}</td>
+          <td>{{.Stats.Day30.Bytes}}</td></tr>
+      <tr><td>All time</td><td>{{.Stats.AllTime.Total}}</td><td>{{.Stats.AllTime.Accepted}}</td>
+          <td>{{.Stats.AllTime.Dropped}}{{if .Stats.AllTime.Dropped}} <span class="f10 muted">({{printf "%.1f" .Stats.AllTime.DropRate}}%)</span>{{end}}</td>
+          <td>{{.Stats.AllTime.Bytes}}</td></tr>
+    </tbody>
+  </table>
+  <p class="f10 muted legend">
+    Counted from the kernel's own rules, so these are connections that actually
+    reached a forward. "Dropped" means refused by the flood limit, not failed
+    elsewhere.
+  </p>
+  {{else}}
+  <p class="field-hint pad">No connections have been recorded yet. Figures appear once traffic reaches a port forward.</p>
+  {{end}}
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Router</h2>
+  <dl class="kv">
+    <div class="kv-row"><dt class="col-l-260">Processor</dt><dd class="col-r">
+      {{if .System.CPUModel}}{{.System.CPUModel}}{{else}}<span class="muted">unknown model</span>{{end}} &times; {{.System.NumCPU}}
+      {{- if .System.CPUHasValue}} &middot; {{printf "%.1f" .System.CPUPercent}}% busy
+      {{- else}} &middot; <span class="muted">measuring…</span>{{end}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Memory</dt><dd class="col-r">{{.System.MemUsed}} of {{.System.MemTotal}} ({{printf "%.1f" .System.MemPercent}}%)</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Load average</dt><dd class="col-r">{{printf "%.2f" .System.Load1}} / {{printf "%.2f" .System.Load5}} / {{printf "%.2f" .System.Load15}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Host uptime</dt><dd class="col-r">{{.System.HostUptime}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Firmware</dt><dd class="col-r"><code>wgrouter {{.System.RouterVersion}}</code> · kernel <code>{{.System.KernelVersion}}</code> · <code>{{.System.GoVersion}}</code></dd></div>
+  </dl>
+</section>
+
+<div class="milestone-note">
+  Peer counts and interface state are read live from the kernel over netlink;
+  a peer counts as online when it has handshaked within the last
+  {{.HandshakeWindow}} seconds. Connection figures come from nftables counters
+  sampled every 60 seconds, so the most recent minute may not be included yet.
+</div>
+{{end}}

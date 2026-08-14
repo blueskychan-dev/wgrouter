@@ -1,0 +1,80 @@
+{{define "title"}}Firewall Log{{end}}
+{{define "heading"}}Firewall Log{{end}}
+{{define "desc"}}Packets the router dropped, and why.{{end}}
+
+{{define "content"}}
+<section class="table">
+  <h2 class="col-tbl-th">Settings</h2>
+  <form method="post" action="/admin/logs/settings" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="which" value="firewall">
+    <div class="form-row">
+      <label class="col-l-260" for="fw-enabled">Recording</label>
+      <div class="col-r">
+        <select class="input narrow" id="fw-enabled" name="enabled">
+          <option value="1"{{if .LogFirewallEnabled}} selected{{end}}>Enabled</option>
+          <option value="0"{{if not .LogFirewallEnabled}} selected{{end}}>Disabled</option>
+        </select>
+        <p class="field-hint">
+          Turning this on adds a log statement to every drop rule, so the ruleset is rebuilt when you
+          save. The log statements are rate-limited in the kernel and the table is capped, because a
+          firewall log that fills the disk during an attack is a second outage on top of the first.
+        </p>
+        <p class="field-hint">
+          Reading the kernel log needs <code>CAP_SYSLOG</code> when
+          <code>kernel.dmesg_restrict=1</code>. If wgrouter cannot read it, the drops still happen
+          and are still counted &mdash; only the per-packet detail is missing.
+        </p>
+      </div>
+    </div>
+    <div class="form-actions"><button type="submit" class="btn-def btn-primary">Save settings</button></div>
+  </form>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Entries</h2>
+  <div class="log-actions">
+    <a class="btn-def" href="/admin/logs/export?which=firewall">Save as CSV</a>
+    <form method="post" action="/admin/logs/clear"
+          onsubmit="return confirm('Clear the firewall log?');">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="hidden" name="which" value="firewall">
+      <button type="submit" class="btn-def btn-danger">Clear log</button>
+    </form>
+  </div>
+
+  {{if .FirewallFailed}}
+  <p class="field-hint pad">The log could not be read from the database.</p>
+  {{else if .Firewall}}
+  <table class="list-table">
+    <thead>
+      <tr>
+        <th class="col-list-th" style="width:18%">Time</th>
+        <th class="col-list-th" style="width:14%">Reason</th>
+        <th class="col-list-th" style="width:22%">Source</th>
+        <th class="col-list-th" style="width:22%">Destination</th>
+        <th class="col-list-th" style="width:10%">Proto</th>
+        <th class="col-list-th" style="width:14%">Forward</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{- range .Firewall}}
+      <tr>
+        <td class="nowrap">{{.At}}</td>
+        <td>{{if eq .Reason "acl"}}Source filter{{else if eq .Reason "ratelimit"}}Flood limit{{else}}{{.Reason}}{{end}}</td>
+        <td><code>{{.Source}}</code></td>
+        <td><code>{{.Dest}}</code></td>
+        <td>{{.Proto}}</td>
+        <td class="muted">#{{.Forward}}</td>
+      </tr>
+      {{- end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="field-hint pad">
+    {{if .LogFirewallEnabled}}Nothing has been dropped since logging was enabled.
+    {{else}}Firewall logging is off. Enable it above to record dropped packets.{{end}}
+  </p>
+  {{end}}
+</section>
+{{end}}

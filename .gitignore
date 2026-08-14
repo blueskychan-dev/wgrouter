@@ -1,0 +1,16 @@
+# Build output
+/wgrouter
+/coverage.out
+
+# Local state
+*.db
+*.db-wal
+*.db-shm
+
+# Design reference: a verbatim save of a HUMAX router's admin UI, kept locally
+# as the extraction source for docs/DESIGN.md. Not ours to redistribute.
+/HUMAX.htm
+
+# Editor / OS
+.DS_Store
+*.swp

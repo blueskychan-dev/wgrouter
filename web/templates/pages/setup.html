@@ -1,0 +1,41 @@
+{{define "title"}}Setup{{end}}
+{{define "heading"}}First-run setup{{end}}
+{{define "desc"}}This router has no administrator account yet. Nothing else is served until one is created.{{end}}
+
+{{define "content"}}
+<section class="table narrow">
+  <h2 class="col-tbl-th">Create the administrator account</h2>
+  <form method="post" action="/setup" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <label class="col-l-260" for="username">Username</label>
+      <div class="col-r"><input class="input" type="text" id="username" name="username" value="admin" autocomplete="username" required autofocus></div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="password">Password</label>
+      <div class="col-r">
+        <input class="input" type="password" id="password" name="password" autocomplete="new-password" required minlength="{{.MinPasswordLength}}">
+        <p class="field-hint">At least {{.MinPasswordLength}} characters. Length matters more than punctuation.</p>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="confirm_password">Confirm password</label>
+      <div class="col-r"><input class="input" type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required minlength="{{.MinPasswordLength}}"></div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-def">Create account</button>
+    </div>
+  </form>
+</section>
+
+{{if not .TLSEnabled}}
+<div class="notice notice-warn">
+  <strong>This session is not encrypted.</strong>
+  The admin listener is serving plain HTTP, so this password will cross the
+  network in the clear and the session cookie cannot be marked
+  <code>Secure</code>. That is acceptable over the WireGuard tunnel, which is
+  already encrypted, but not over anything else. Start wgrouter with
+  <code>-tls-cert</code> and <code>-tls-key</code> to serve HTTPS.
+</div>
+{{end}}
+{{end}}

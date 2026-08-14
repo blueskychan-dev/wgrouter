@@ -1,0 +1,232 @@
+{{define "title"}}Devices{{end}}
+{{define "heading"}}WireGuard Devices{{end}}
+{{define "desc"}}Peers configured on this router, their tunnel addresses and connection state.{{end}}
+
+{{define "content"}}
+
+{{/* Shown exactly once, on the response that created the device. The private
+     key is not stored, so this page is the only time it exists. */}}
+{{if .NewDevice}}
+<section class="table newdev">
+  <h2 class="col-tbl-th">{{.NewDevice.Name}} — configuration</h2>
+  <div class="newdev-warn">
+    <strong>This is the only time this configuration is shown.</strong>
+    The private key is generated on the router, handed to you once and never
+    stored. If you lose it, delete the device and add it again.
+    {{if .NewDevice.Direct}}<br><strong>Direct-mode config:</strong> it sets <code>Table = off</code>
+    and installs its own policy routing, so the device keeps its normal internet route. Import it
+    with <code>wg-quick</code> on Linux; the <code>PostUp</code> hooks will not run on a phone.{{end}}
+  </div>
+  <div class="newdev-body">
+    <div class="newdev-conf">
+      <pre class="conf" id="newconf">{{.NewDevice.Config}}</pre>
+      <p class="newdev-actions">
+        <a class="btn-def" download="{{.NewDevice.Filename}}" href="{{.NewDevice.ConfigDataURI}}">Download {{.NewDevice.Filename}}</a>
+        <button type="button" class="btn-def" id="copyconf" data-target="newconf">Copy to clipboard</button>
+      </p>
+    </div>
+    {{if .NewDevice.QRDataURI}}
+    <div class="newdev-qr">
+      <img src="{{.NewDevice.QRDataURI}}" width="320" height="320"
+           alt="QR code encoding the WireGuard configuration for {{.NewDevice.Name}}">
+      <p class="f10 muted">Scan with the WireGuard app</p>
+    </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .KernelError}}
+<div class="flash flash-error">
+  The WireGuard interface could not be read: {{.KernelError}}. The devices below
+  are from the database; their live state is unknown.
+</div>
+{{else if not .WGUp}}
+<div class="flash flash-info">
+  The interface <code>{{.WGInterface}}</code> is not present in the kernel yet.
+  Devices are listed from the database and will be applied when it comes up.
+</div>
+{{end}}
+
+{{if .Devices}}
+<table class="list-table" id="devtable">
+  <thead>
+    <tr>
+      <th class="col-list-th" style="width:5%">No.</th>
+      <th class="col-list-th" style="width:19%">Name</th>
+      <th class="col-list-th" style="width:13%">Tunnel IP</th>
+      <th class="col-list-th" style="width:15%">Status</th>
+      <th class="col-list-th" style="width:15%">Last Handshake</th>
+      <th class="col-list-th" style="width:15%">Transfer</th>
+      <th class="col-list-th" style="width:18%">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{- range $i, $d := .Devices}}
+    <tr data-device="{{$d.ID}}"{{if not $d.Enabled}} class="row-disabled"{{end}}>
+      <td>{{add $i 1}}</td>
+      <td>
+        {{$d.Name}}
+        {{- if $d.Notes}}<div class="f10 muted">{{$d.Notes}}</div>{{end}}
+      </td>
+      <td><code>{{$d.TunnelIP}}</code></td>
+      <td class="cell-presence">
+        {{- if $d.Enabled}}
+        <span class="dot dot-{{$d.Presence}}"></span><span class="presence-label">{{$d.PresenceLabel}}</span>
+        {{- else}}
+        <span class="dot dot-off"></span>Disabled
+        {{- end}}
+      </td>
+      <td class="cell-handshake muted">{{$d.LastHandshake}}</td>
+      <td class="cell-transfer f10 muted">&darr; {{$d.Rx}}<br>&uarr; {{$d.Tx}}</td>
+      <td class="cell-actions">
+        <a class="btn-def" href="/devices?edit={{$d.ID}}">Edit</a>
+        <form method="post" action="/devices/{{$d.ID}}/toggle" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <input type="hidden" name="enable" value="{{if $d.Enabled}}0{{else}}1{{end}}">
+          <button type="submit" class="btn-def">{{if $d.Enabled}}Disable{{else}}Enable{{end}}</button>
+        </form>
+        <form method="post" action="/devices/{{$d.ID}}/delete" class="inline-form"
+              onsubmit="return confirm('Delete {{$d.Name}}? Its port forwards will be removed too, and the device will not be able to reconnect.');">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <button type="submit" class="btn-def btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{- end}}
+  </tbody>
+</table>
+<p class="f10 muted legend">
+  <span class="dot dot-online"></span> handshake within {{.HandshakeWindow}}s &nbsp;
+  <span class="dot dot-idle"></span> connected before, quiet now &nbsp;
+  <span class="dot dot-never"></span> never completed a handshake
+</p>
+{{else}}
+<div class="empty-state">
+  <div class="empty-icon" aria-hidden="true">◇</div>
+  <p class="f18 c464646 empty-head"><strong>No devices have been added yet.</strong></p>
+  <p class="f13 c464646 empty-body">Add a device below to generate its keypair, allocate a tunnel address and produce a client config.</p>
+</div>
+{{end}}
+
+{{if .EditDevice}}
+<section class="table" id="editform">
+  <h2 class="col-tbl-th">Edit {{.EditDevice.Name}}</h2>
+  <form method="post" action="/devices/{{.EditDevice.ID}}/update" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <label class="col-l-260" for="dev-name">Name</label>
+      <div class="col-r">
+        <input class="input" type="text" id="dev-name" name="name" maxlength="64" required
+               value="{{.EditDevice.Name}}" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="dev-notes">Note <span class="muted">(optional)</span></label>
+      <div class="col-r">
+        <input class="input" type="text" id="dev-notes" name="notes" maxlength="256"
+               value="{{.EditDevice.Notes}}" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="col-l-260">Tunnel address</div>
+      <div class="col-r">
+        <code>{{.EditDevice.TunnelIP}}</code>
+        <p class="field-hint">Not editable. It is written into the client configuration, which was
+          shown once and cannot be reissued &mdash; changing it here would silently break a working device.</p>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="col-l-260">Public key</div>
+      <div class="col-r">
+        <code class="wrap f10">{{.EditDevice.PublicKey}}</code>
+        <p class="field-hint">Not editable. This is the device's identity.</p>
+      </div>
+    </div>
+    <div class="form-actions">
+      <a class="btn-def" href="/devices">Cancel</a>
+      <button type="submit" class="btn-def btn-primary">Save changes</button>
+    </div>
+  </form>
+</section>
+{{else}}
+<section class="table">
+  <h2 class="col-tbl-th">Add a device</h2>
+  <form method="post" action="/devices" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <label class="col-l-260" for="dev-name">Name</label>
+      <div class="col-r">
+        <input class="input" type="text" id="dev-name" name="name" maxlength="64" required
+               placeholder="ana-laptop" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="dev-notes">Note <span class="muted">(optional)</span></label>
+      <div class="col-r">
+        <input class="input" type="text" id="dev-notes" name="notes" maxlength="256"
+               placeholder="What this device is for" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="dev-addr">Tunnel address <span class="muted">(optional)</span></label>
+      <div class="col-r">
+        <input class="input" type="text" id="dev-addr" name="address"
+               placeholder="next free address in {{.TunnelPool}}" autocomplete="off">
+        <p class="field-hint">Leave blank to take the lowest free address.</p>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="dev-routing">Routing</label>
+      <div class="col-r">
+        <select class="input" id="dev-routing" name="routing">
+          <option value="tunnel">Tunnel only &mdash; AllowedIPs {{.ClientAllowedIPs}}</option>
+          <option value="direct">Direct-mode support &mdash; policy routing</option>
+        </select>
+        <p class="field-hint routing-help" data-routing="tunnel">
+          The device routes only the tunnel pool. Correct for every peer reached through a
+          <strong>masquerade</strong> forward, which is the default.
+        </p>
+        <p class="field-hint routing-help" data-routing="direct">
+          For a peer that is the target of a <strong>direct-mode</strong> forward. Direct mode
+          delivers the client's real source address, which requires
+          <code>AllowedIPs&nbsp;=&nbsp;0.0.0.0/0</code> &mdash; that value is the inbound cryptokey
+          filter, not just a route.
+          <br><br>
+          On its own that would also become the device's default route, and this tunnel has no
+          internet egress, so the device would lose connectivity. The generated config therefore
+          sets <code>Table&nbsp;=&nbsp;off</code> and installs source-based policy routing instead:
+          replies from the tunnel address leave through the tunnel, and the system default route is
+          untouched. It needs <code>wg-quick</code> on Linux &mdash; the hooks are
+          <code>ip&nbsp;route</code>/<code>ip&nbsp;rule</code> commands, which phone clients cannot run.
+          <br><br>
+          Baked into the config at creation and not changeable later.
+        </p>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="col-l-260"></div>
+      <div class="col-r"><button type="submit" class="btn-def btn-primary">Add device</button></div>
+    </div>
+  </form>
+</section>
+{{end}}
+
+<section class="table">
+  <h2 class="col-tbl-th">Server</h2>
+  <dl class="kv">
+    <div class="kv-row">
+      <dt class="col-l-260">Public key</dt>
+      <dd class="col-r"><code class="wrap">{{if .ServerPublicKey}}{{.ServerPublicKey}}{{else}}—{{end}}</code></dd>
+    </div>
+    <div class="kv-row">
+      <dt class="col-l-260">Endpoint given to clients</dt>
+      <dd class="col-r"><code>{{.PublicEndpoint}}:{{.WGListenPort}}</code></dd>
+    </div>
+    <div class="kv-row">
+      <dt class="col-l-260">Interface</dt>
+      <dd class="col-r"><code>{{.WGInterface}}</code> at <code>{{.ServerIP}}</code></dd>
+    </div>
+  </dl>
+</section>
+{{end}}

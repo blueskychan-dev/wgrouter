@@ -1,0 +1,80 @@
+{{define "title"}}User Log{{end}}
+{{define "heading"}}User Log{{end}}
+{{define "desc"}}Every administrative action: who did what, when, and from where.{{end}}
+
+{{define "content"}}
+<section class="table">
+  <h2 class="col-tbl-th">Settings</h2>
+  <form method="post" action="/admin/logs/settings" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="which" value="user">
+    <div class="form-row">
+      <label class="col-l-260" for="user-enabled">Recording</label>
+      <div class="col-r">
+        <select class="input narrow" id="user-enabled" name="enabled">
+          <option value="1"{{if .LogUserEnabled}} selected{{end}}>Enabled</option>
+          <option value="0"{{if not .LogUserEnabled}} selected{{end}}>Disabled</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="col-l-260">Record which actions</div>
+      <div class="col-r">
+        <div class="filter-grid">
+          {{- range .LogActionFilters}}
+          <label><input type="checkbox" name="actions" value="{{.Value}}"{{if .Selected}} checked{{end}}> {{.Label}}</label>
+          {{- end}}
+        </div>
+        <p class="field-hint">
+          Failed sign-ins, password changes and first-run setup are always recorded and cannot be
+          filtered out. A security log that can be quietly switched off for exactly the events an
+          audit exists to show would be worse than no log at all.
+        </p>
+      </div>
+    </div>
+    <div class="form-actions"><button type="submit" class="btn-def btn-primary">Save settings</button></div>
+  </form>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Entries</h2>
+  <div class="log-actions">
+    <a class="btn-def" href="/admin/logs/export?which=user">Save as CSV</a>
+    <form method="post" action="/admin/logs/clear"
+          onsubmit="return confirm('Clear the user log? The fact that you cleared it is recorded.');">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="hidden" name="which" value="user">
+      <button type="submit" class="btn-def btn-danger">Clear log</button>
+    </form>
+  </div>
+
+  {{if .AuditFailed}}
+  <p class="field-hint pad">The log could not be read from the database. This is an error, not an empty log.</p>
+  {{else if .Audit}}
+  <table class="list-table">
+    <thead>
+      <tr>
+        <th class="col-list-th" style="width:18%">Time</th>
+        <th class="col-list-th" style="width:14%">Who</th>
+        <th class="col-list-th" style="width:18%">Action</th>
+        <th class="col-list-th" style="width:36%">Detail</th>
+        <th class="col-list-th" style="width:14%">From</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{- range .Audit}}
+      <tr>
+        <td class="nowrap">{{.At.Format "2006-01-02 15:04:05"}}</td>
+        <td>{{.Actor}}</td>
+        <td><code class="f10">{{.Action}}</code></td>
+        <td>{{.Detail}}</td>
+        <td class="f10 muted">{{.RemoteAddr}}</td>
+      </tr>
+      {{- end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="field-hint pad">Nothing has been logged yet.</p>
+  {{end}}
+</section>
+{{end}}

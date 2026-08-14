@@ -1,0 +1,77 @@
+{{define "title"}}Maintenance{{end}}
+{{define "heading"}}Maintenance{{end}}
+{{define "desc"}}Housekeeping for the database and the kernel ruleset.{{end}}
+
+{{define "content"}}
+<section class="table">
+  <h2 class="col-tbl-th">Stored data</h2>
+  <dl class="kv">
+    <div class="kv-row"><dt class="col-l-260">Devices</dt><dd class="col-r">{{.CountPeers}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Port forwards</dt><dd class="col-r">{{.CountForwards}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">User log entries</dt><dd class="col-r">{{.CountAudit}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Firewall log entries</dt><dd class="col-r">{{.CountFirewall}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Database</dt><dd class="col-r"><code>{{.DBPath}}</code> <span class="muted">(schema v{{.SchemaVersion}})</span></dd></div>
+  </dl>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Re-synchronise the kernel</h2>
+  <form method="post" action="/admin/maintenance" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="action" value="reconcile">
+    <div class="form-row">
+      <div class="col-l-260">Rebuild now</div>
+      <div class="col-r">
+        <p class="field-hint">Pushes the WireGuard peer set and the nftables ruleset from the
+          database. This happens automatically after every change and every 60 seconds; the button
+          is for when you want to be certain rather than wait.</p>
+      </div>
+    </div>
+    <div class="form-actions"><button type="submit" class="btn-def">Reconcile now</button></div>
+  </form>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Compact the database</h2>
+  <form method="post" action="/admin/maintenance" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="action" value="vacuum">
+    <div class="form-row">
+      <div class="col-l-260">VACUUM</div>
+      <div class="col-r">
+        <p class="field-hint">Reclaims space left by deleted logs and statistics. Safe to run at any
+          time, but it rewrites the whole file, so it briefly blocks writes.</p>
+      </div>
+    </div>
+    <div class="form-actions"><button type="submit" class="btn-def">Compact database</button></div>
+  </form>
+</section>
+
+<section class="table danger-zone">
+  <h2 class="col-tbl-th">Factory reset</h2>
+  <form method="post" action="/admin/maintenance" class="form"
+        onsubmit="return confirm('This deletes every device, port forward, log and setting. Continue?');">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" name="action" value="factory-reset">
+    <div class="form-row">
+      <label class="col-l-260" for="confirm">Type RESET to confirm</label>
+      <div class="col-r">
+        <input class="input narrow" type="text" id="confirm" name="confirm" autocomplete="off" placeholder="RESET">
+        <p class="field-hint">
+          Deletes every device, port forward, log, statistic and setting, including the WireGuard
+          server key &mdash; <strong>every client configuration you have issued stops working.</strong>
+          Your administrator account is kept so you are not locked out.
+          Export the configuration first if you might want it back.
+        </p>
+      </div>
+    </div>
+    <div class="form-actions"><button type="submit" class="btn-def btn-danger">Reset router</button></div>
+  </form>
+</section>
+
+<div class="milestone-note">
+  Restarting the service and rebooting the host are deliberately not offered here: wgrouter runs
+  under a supervisor that owns its lifecycle, and a web button that can take the router off the
+  network is a good way to lose access to the router.
+</div>
+{{end}}

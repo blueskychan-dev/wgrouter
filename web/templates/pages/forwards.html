@@ -1,0 +1,250 @@
+{{define "title"}}Port Forwarding{{end}}
+{{define "heading"}}Port Forwarding{{end}}
+{{define "desc"}}Forward a WAN port to a peer inside the tunnel. Each rule chooses how the original client address is handled.{{end}}
+
+{{define "content"}}
+
+{{if .ReconcileErr}}
+<div class="flash flash-error">
+  The kernel ruleset could not be rebuilt: {{.ReconcileErr}}. The forwards below
+  are what the database holds; they may not be active.
+</div>
+{{end}}
+
+{{if .Forwards}}
+<table class="list-table">
+  <thead>
+    <tr>
+      <th class="col-list-th" style="width:5%">No.</th>
+      <th class="col-list-th" style="width:18%">Label</th>
+      <th class="col-list-th" style="width:12%">WAN port</th>
+      <th class="col-list-th" style="width:20%">Target</th>
+      <th class="col-list-th" style="width:16%">Source mode</th>
+      <th class="col-list-th" style="width:11%">In kernel</th>
+      <th class="col-list-th" style="width:13%">Connections</th>
+      <th class="col-list-th" style="width:15%">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{- range $i, $f := .Forwards}}
+    <tr{{if not $f.Enabled}} class="row-disabled"{{end}}>
+      <td>{{add $i 1}}</td>
+      <td>
+        {{$f.Label}}
+        {{- if $f.Warn}}<div class="f10 warn-note">{{$f.Warn}}</div>{{end}}
+      </td>
+      <td>
+        <code>{{$f.Listen}}/{{$f.Proto}}</code>
+        {{- if $f.IsRange}}<div class="f10 muted">range, ports preserved</div>{{end}}
+      </td>
+      <td>
+        <code>{{$f.TargetIP}}{{if not $f.IsRange}}:{{$f.TargetPort}}{{end}}</code>
+        {{- if $f.PeerName}}<div class="f10 muted">{{$f.PeerName}}</div>{{end}}
+      </td>
+      <td>
+        {{$f.ModeLabel}}
+        <div class="f10 muted">
+          {{if $f.RateLimit}}flood limit on{{else}}flood limit off{{end}}
+        </div>
+        {{- if ne $f.SrcPolicy "any"}}
+        <div class="f10 warn-note" title="{{$f.Sources}}">{{$f.PolicyLbl}}</div>
+        {{- end}}
+      </td>
+      <td>
+        {{- if not $f.Enabled}}
+        <span class="dot dot-off"></span>Disabled
+        {{- else if $f.InKernel}}
+        <span class="dot dot-online"></span>Live
+        {{- else}}
+        <span class="dot dot-never"></span><span title="The rule is in the database but was not found in the kernel.">Missing</span>
+        {{- end}}
+      </td>
+      <td class="f10">
+        {{$f.Accepted7d}} <span class="muted">7d</span>
+        {{- if $f.Dropped7d}}<div class="warn-note">{{$f.Dropped7d}} dropped</div>{{end}}
+        <div class="muted">{{$f.AcceptedAll}} all time</div>
+      </td>
+      <td class="cell-actions">
+        <a class="btn-def" href="/forwards?edit={{$f.ID}}">Edit</a>
+        <form method="post" action="/forwards/{{$f.ID}}/toggle" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <input type="hidden" name="enable" value="{{if $f.Enabled}}0{{else}}1{{end}}">
+          <button type="submit" class="btn-def">{{if $f.Enabled}}Disable{{else}}Enable{{end}}</button>
+        </form>
+        <form method="post" action="/forwards/{{$f.ID}}/delete" class="inline-form"
+              onsubmit="return confirm('Delete the forward on port {{$f.Listen}}?');">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <button type="submit" class="btn-def btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{- end}}
+  </tbody>
+</table>
+{{if .ReconcileAt}}<p class="f10 muted legend">Kernel ruleset last rebuilt {{.ReconcileAt}}.</p>{{end}}
+{{else}}
+<div class="empty-state">
+  <div class="empty-icon" aria-hidden="true">◇</div>
+  <p class="f18 c464646 empty-head"><strong>No port forwards are configured.</strong></p>
+  <p class="f13 c464646 empty-body">Forwards map a WAN port to a peer address and port, and are rebuilt into the kernel on every start.</p>
+</div>
+{{end}}
+
+<section class="table"{{if .EditForward}} id="editform"{{end}}>
+  {{if .EditForward}}
+  <h2 class="col-tbl-th">Edit forward &mdash; {{.EditForward.Label}}</h2>
+  {{else}}
+  <h2 class="col-tbl-th">Add a forward</h2>
+  {{end}}
+
+  {{if and (not .EditForward) .NoDevicesForFwd}}
+  <p class="field-hint pad">Add a device first &mdash; a forward has to point at a peer.</p>
+  {{else}}
+  <form method="post" action="{{if .EditForward}}/forwards/{{.EditForward.ID}}/update{{else}}/forwards{{end}}" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <label class="col-l-260" for="fwd-label">Label</label>
+      <div class="col-r">
+        <input class="input" type="text" id="fwd-label" name="label" maxlength="64" required
+               value="{{with .EditForward}}{{.Label}}{{end}}"
+               placeholder="web server" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="fwd-listen">WAN port</label>
+      <div class="col-r">
+        <input class="input" type="text" id="fwd-listen" name="listen_port"
+               required placeholder="443 or 8080-8090" autocomplete="off"
+               value="{{with .EditForward}}{{.Listen}}{{end}}">
+        <p class="field-hint">
+          The port on <code>{{.WANInterface}}</code> that the internet connects to.
+          A range like <code>8080-8090</code> forwards every port in it straight through &mdash;
+          each arrives at the peer on the same port, so no target port is used.
+        </p>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="fwd-proto">Protocol</label>
+      <div class="col-r">
+        <select class="input narrow" id="fwd-proto" name="proto">
+          {{- $sel := "" }}{{with .EditForward}}{{$sel = .Proto}}{{end}}
+          <option value="tcp"{{if eq $sel "tcp"}} selected{{end}}>TCP</option>
+          <option value="udp"{{if eq $sel "udp"}} selected{{end}}>UDP</option>
+          <option value="both"{{if eq $sel "both"}} selected{{end}}>TCP and UDP</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="fwd-peer">Target device</label>
+      <div class="col-r">
+        <select class="input" id="fwd-peer" name="peer_id" required>
+          {{- $peer := int64 0 }}{{with .EditForward}}{{$peer = .PeerID}}{{end}}
+          {{- range .Devices}}
+          <option value="{{.ID}}"{{if eq .ID $peer}} selected{{end}}>{{.Name}} &mdash; {{.TunnelIP}}</option>
+          {{- end}}
+        </select>
+      </div>
+    </div>
+    <div class="form-row" id="fwd-target-row">
+      <label class="col-l-260" for="fwd-target">Target port</label>
+      <div class="col-r">
+        <input class="input narrow" type="number" id="fwd-target" name="target_port"
+               min="1" max="65535" placeholder="8080"
+               value="{{with .EditForward}}{{if not .IsRange}}{{.TargetPort}}{{end}}{{end}}">
+        <p class="field-hint">Ignored when the WAN port is a range.</p>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="col-l-260" for="fwd-ratelimit">Flood protection</label>
+      <div class="col-r">
+        {{- $rl := true }}{{with .EditForward}}{{$rl = .RateLimit}}{{end}}
+        <select class="input narrow" id="fwd-ratelimit" name="rate_limit">
+          <option value="1"{{if $rl}} selected{{end}}>Enabled</option>
+          <option value="0"{{if not $rl}} selected{{end}}>Disabled</option>
+        </select>
+        <p class="field-hint">
+          Caps how fast new connections may be opened on this forward. Established transfers are
+          never throttled. Turn it off for a service that legitimately receives bursts of
+          connections, such as a busy web server behind a CDN.
+        </p>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="col-l-260" for="fwd-policy">Source filter</label>
+      <div class="col-r">
+        {{- $pol := "any" }}{{with .EditForward}}{{$pol = .SrcPolicy}}{{end}}
+        <select class="input" id="fwd-policy" name="src_policy">
+          <option value="any"{{if eq $pol "any"}} selected{{end}}>Any source</option>
+          <option value="allow"{{if eq $pol "allow"}} selected{{end}}>Allow listed only</option>
+          <option value="deny"{{if eq $pol "deny"}} selected{{end}}>Deny listed</option>
+        </select>
+        <p class="field-hint policy-help" data-policy="any">Every source may reach this forward.</p>
+        <p class="field-hint policy-help" data-policy="allow">
+          Only the listed sources may reach it; everything else is dropped and counted.
+          Fails closed &mdash; a source you forget to list is refused.
+        </p>
+        <p class="field-hint policy-help" data-policy="deny">
+          The listed sources are dropped and everything else is allowed.
+          Fails open &mdash; useful for banning a scanner, not for protecting a service.
+        </p>
+      </div>
+    </div>
+
+    <div class="form-row" id="fwd-sources-row">
+      <label class="col-l-260" for="fwd-sources">Source addresses</label>
+      <div class="col-r">
+        <input class="input" type="text" id="fwd-sources" name="src_list" autocomplete="off"
+               placeholder="203.0.113.0/24, 198.51.100.7"
+               value="{{with .EditForward}}{{.Sources}}{{end}}">
+        <p class="field-hint">
+          Addresses or CIDR ranges, separated by commas. A bare address means that one host.
+          At most 32 entries.
+        </p>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="fwd-mode">Source address</label>
+      <div class="col-r">
+        {{- $mode := "" }}{{with .EditForward}}{{$mode = .SrcMode}}{{end}}
+        <select class="input" id="fwd-mode" name="src_mode">
+          {{- range .ForwardModes}}
+          <option value="{{.Value}}"{{if or (eq .Value $mode) (and (eq $mode "") .Selected)}} selected{{end}}>{{.Label}}</option>
+          {{- end}}
+        </select>
+        {{- range .ForwardModes}}
+        <p class="field-hint mode-help" data-mode="{{.Value}}">{{.Help}}</p>
+        {{- end}}
+      </div>
+    </div>
+    <div class="form-actions">
+      {{if .EditForward}}<a class="btn-def" href="/forwards">Cancel</a>{{end}}
+      <button type="submit" class="btn-def btn-primary">{{if .EditForward}}Save changes{{else}}Add forward{{end}}</button>
+    </div>
+  </form>
+  {{end}}
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Source address modes</h2>
+  <dl class="kv">
+    <div class="kv-row">
+      <dt class="col-l-260">Masquerade</dt>
+      <dd class="col-r">Always works, no client-side requirements. The peer sees the router's tunnel address instead of the real client, so the origin is recorded in the connection log instead.</dd>
+    </div>
+    <div class="kv-row">
+      <dt class="col-l-260">Direct</dt>
+      <dd class="col-r">The peer sees the real client address. The peer's own <code>AllowedIPs</code> must cover the clients it replies to &mdash; usually <code>0.0.0.0/0</code>. With the default <code>AllowedIPs</code> of just the tunnel pool, replies leave by the peer's normal route instead and connections hang.</dd>
+    </div>
+  </dl>
+</section>
+
+<div class="milestone-note">
+  Forwards are programmed as nftables rules in the dedicated <code>inet wgrouter</code>
+  table, rebuilt from the database on every change. Remember that a cloud
+  firewall — an OCI security list or AWS security group — must also allow the
+  WAN port, or the rule will be correct and still unreachable.
+  The per-forward connection log arrives with the source-preservation milestone.
+</div>
+{{end}}

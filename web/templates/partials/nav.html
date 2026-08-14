@@ -1,0 +1,39 @@
+{{define "nav" -}}
+<nav id="menuDiv" aria-label="Sections">
+  <div class="menu-top-spacer"></div>
+  {{- range .Nav}}
+  {{- if .Children}}
+  {{/* A group. <details> gives an expander with no JavaScript and no ARIA of
+       our own -- the browser already exposes it correctly to a screen reader.
+       It is open when one of its pages is the current one. */}}
+  <details class="menu-group"{{if .Open}} open{{end}}>
+    <summary class="menu-def-2 menu-summary">
+      <ul>
+        <li class="menu-icon" aria-hidden="true">{{.Glyph}}</li>
+        <li class="menu-label">{{.Label}}</li>
+        <li class="menu-caret" aria-hidden="true">▾</li>
+      </ul>
+    </summary>
+    {{- range .Children}}
+    <a href="{{.Href}}" class="menu-link menu-child"{{if .Active}} aria-current="page"{{end}}>
+      <div class="{{if .Active}}menu-out-2{{else}}menu-def-2{{end}}">
+        <ul>
+          <li class="menu-label">{{.Label}}</li>
+        </ul>
+      </div>
+    </a>
+    {{- end}}
+  </details>
+  {{- else}}
+  <a href="{{.Href}}" class="menu-link"{{if .Active}} aria-current="page"{{end}}>
+    <div class="{{if .Active}}menu-out-2{{else}}menu-def-2{{end}}">
+      <ul>
+        <li class="menu-icon" aria-hidden="true">{{.Glyph}}</li>
+        <li class="menu-label">{{.Label}}</li>
+      </ul>
+    </div>
+  </a>
+  {{- end}}
+  {{- end}}
+</nav>
+{{- end}}

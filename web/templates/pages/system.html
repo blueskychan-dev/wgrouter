@@ -1,0 +1,175 @@
+{{define "title"}}System{{end}}
+{{define "heading"}}System{{end}}
+{{define "desc"}}Router health, versions, diagnostics and the admin password.{{end}}
+
+{{define "content"}}
+
+{{if .SystemError}}
+<div class="flash flash-error">Some health figures could not be read: {{.SystemError}}</div>
+{{end}}
+
+<section class="table">
+  <h2 class="col-tbl-th">Resources</h2>
+  <dl class="kv">
+    <div class="kv-row">
+      <dt class="col-l-260">Processor</dt>
+      <dd class="col-r">
+        {{if .System.CPUModel}}{{.System.CPUModel}}{{else}}<span class="muted">unknown model</span>{{end}}
+        &times; {{.System.NumCPU}}
+      </dd>
+    </div>
+    <div class="kv-row">
+      <dt class="col-l-260">Processor load</dt>
+      <dd class="col-r">
+        {{- if .System.CPUHasValue}}
+        <div class="meter"><span class="meter-fill" style="width:{{printf "%.0f" .System.CPUPercent}}%"></span></div>
+        {{printf "%.1f" .System.CPUPercent}}% of {{.System.NumCPU}} cores
+        {{- else}}
+        <span class="muted">measuring — a rate needs two samples, reload in a moment</span>
+        {{- end}}
+      </dd>
+    </div>
+    <div class="kv-row">
+      <dt class="col-l-260">Memory</dt>
+      <dd class="col-r">
+        <div class="meter"><span class="meter-fill" style="width:{{printf "%.0f" .System.MemPercent}}%"></span></div>
+        {{.System.MemUsed}} of {{.System.MemTotal}} used ({{printf "%.1f" .System.MemPercent}}%)
+      </dd>
+    </div>
+    {{if .System.HasSwap}}
+    <div class="kv-row"><dt class="col-l-260">Swap</dt><dd class="col-r">{{.System.SwapUsed}} of {{.System.SwapTotal}}</dd></div>
+    {{end}}
+    <div class="kv-row">
+      <dt class="col-l-260">Load average</dt>
+      <dd class="col-r">{{printf "%.2f" .System.Load1}} &nbsp; {{printf "%.2f" .System.Load5}} &nbsp; {{printf "%.2f" .System.Load15}}
+        <span class="muted f10">(1 / 5 / 15 min)</span></dd>
+    </div>
+    <div class="kv-row"><dt class="col-l-260">Host uptime</dt><dd class="col-r">{{.System.HostUptime}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Service uptime</dt><dd class="col-r">{{.System.ServiceUptime}}</dd></div>
+  </dl>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Versions</h2>
+  <dl class="kv">
+    <div class="kv-row"><dt class="col-l-260">Router firmware</dt><dd class="col-r"><code>wgrouter {{.System.RouterVersion}}</code></dd></div>
+    <div class="kv-row"><dt class="col-l-260">Kernel</dt><dd class="col-r"><code>{{.System.KernelVersion}}</code></dd></div>
+    <div class="kv-row"><dt class="col-l-260">Go runtime</dt><dd class="col-r"><code>{{.System.GoVersion}}</code></dd></div>
+    <div class="kv-row"><dt class="col-l-260">Platform</dt><dd class="col-r"><code>{{.System.OS}}/{{.System.Arch}}</code></dd></div>
+    <div class="kv-row"><dt class="col-l-260">Database schema</dt><dd class="col-r">v{{.SchemaVersion}}</dd></div>
+  </dl>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Firmware update</h2>
+  <dl class="kv">
+    <div class="kv-row">
+      <dt class="col-l-260">Status</dt>
+      <dd class="col-r">
+        <span class="dot dot-idle"></span>{{.System.FirmwareStatus}}
+        <p class="field-hint">Coming soon. Until then, update by replacing the binary and restarting;
+          the database migrates itself forward on start.</p>
+      </dd>
+    </div>
+    <div class="kv-row">
+      <dt class="col-l-260"></dt>
+      <dd class="col-r"><button type="button" class="btn-def" disabled title="Not implemented yet">Check for updates</button></dd>
+    </div>
+  </dl>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Diagnostics</h2>
+  <form method="post" action="/system/diagnostics" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <label class="col-l-260" for="diag-tool">Tool</label>
+      <div class="col-r">
+        <select class="input" id="diag-tool" name="tool">
+          {{- range .DiagTools}}
+          <option value="{{.Value}}"{{if .Selected}} selected{{end}}{{if .NeedPort}} data-need-port="1"{{end}}>{{.Label}}</option>
+          {{- end}}
+        </select>
+        {{- range .DiagTools}}
+        <p class="field-hint diag-help" data-tool="{{.Value}}">{{.Help}}</p>
+        {{- end}}
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="diag-target">Target</label>
+      <div class="col-r">
+        <input class="input" type="text" id="diag-target" name="target" required
+               value="{{.DiagTarget}}" placeholder="10.10.0.3 or example.com" autocomplete="off">
+        <p class="field-hint">An IP address or hostname. Nothing here reaches a shell &mdash; the tool set is fixed.</p>
+      </div>
+    </div>
+    <div class="form-row" id="diag-port-row">
+      <label class="col-l-260" for="diag-port">Port</label>
+      <div class="col-r">
+        <input class="input narrow" type="number" id="diag-port" name="port" min="1" max="65535"
+               value="{{.DiagPort}}" placeholder="443">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-def btn-primary">Run</button>
+    </div>
+  </form>
+
+  {{if .DiagResult}}
+  <div class="diag-out">
+    <p class="diag-head">
+      {{if .DiagResult.OK}}<span class="dot dot-online"></span>{{else}}<span class="dot dot-never"></span>{{end}}
+      {{.DiagResult.Tool}} {{.DiagResult.Target}} &mdash; {{.DiagResult.Summary}}
+    </p>
+    <pre class="conf">{{range .DiagResult.Lines}}{{.}}
+{{end}}</pre>
+  </div>
+  {{end}}
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Configuration</h2>
+  <dl class="kv">
+    <div class="kv-row"><dt class="col-l-260">WireGuard Interface</dt><dd class="col-r">{{.WGInterface}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">WireGuard Listen Port</dt><dd class="col-r">{{.WGListenPort}}/udp</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Tunnel Subnet</dt><dd class="col-r">{{.TunnelPool}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Public Endpoint</dt><dd class="col-r">{{.PublicEndpoint}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Client AllowedIPs</dt><dd class="col-r">{{.ClientAllowedIPs}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Client DNS</dt><dd class="col-r">{{if .ClientDNS}}{{.ClientDNS}}{{else}}<span class="muted">not set — omitted from generated configs</span>{{end}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">WAN Interface</dt><dd class="col-r">{{.WANInterface}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Admin Listener</dt><dd class="col-r">{{.ListenAddr}}</dd></div>
+    <div class="kv-row"><dt class="col-l-260">Database</dt><dd class="col-r">{{.DBPath}} <span class="muted">(schema v{{.SchemaVersion}})</span></dd></div>
+  </dl>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Change admin password</h2>
+  <form method="post" action="/system/password" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <label class="col-l-260" for="current_password">Current password</label>
+      <div class="col-r"><input class="input" type="password" id="current_password" name="current_password" autocomplete="current-password" required></div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="new_password">New password</label>
+      <div class="col-r">
+        <input class="input" type="password" id="new_password" name="new_password" autocomplete="new-password" required minlength="{{.MinPasswordLength}}">
+        <p class="field-hint">At least {{.MinPasswordLength}} characters. Changing it signs out every other session.</p>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="confirm_password">Confirm new password</label>
+      <div class="col-r"><input class="input" type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required minlength="{{.MinPasswordLength}}"></div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-def">Change password</button>
+    </div>
+  </form>
+</section>
+
+<div class="milestone-note">
+  Diagnostics run entirely inside wgrouter against sockets: there is no shell,
+  and the tool set is fixed, so a target field cannot become a command. The
+  firmware updater is not built yet.
+</div>
+{{end}}

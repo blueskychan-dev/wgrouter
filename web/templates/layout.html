@@ -1,0 +1,77 @@
+{{define "layout" -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{block "title" .}}wgrouter{{end}} — wgrouter</title>
+<link rel="stylesheet" href="/static/css/tokens.css">
+<link rel="stylesheet" href="/static/css/humax.css">
+</head>
+<body>
+<div id="container">
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="pro-logo">
+        <span class="pro-logo-img">wgrouter</span>
+        <span class="pro-model">WireGuard Router</span>
+      </div>
+      <div class="pro-btn-box">
+        <div class="domaname">
+          <ul>
+            <li>{{.WGInterface}}</li>
+            <li>•</li>
+            <li>{{.TunnelPool}}</li>
+            {{- if .User}}
+            <li>|</li>
+            <li>{{.User}}</li>
+            <li>•</li>
+            <li>
+              <form method="post" action="/logout" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                <button type="submit" class="linkish">Log out</button>
+              </form>
+            </li>
+            {{- end}}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-td">
+    <div class="body-grid{{if not .Nav}} body-grid-nonav{{end}}">
+      {{- if .Nav}}{{template "nav" .}}{{end}}
+
+      <main id="contentDiv">
+        <h1 class="f16 c464646 bold page-title">{{block "heading" .}}{{end}}</h1>
+        <p class="f10 c464646 page-desc">{{block "desc" .}}{{end}}</p>
+
+        {{- with .Flash}}
+        <div class="flash flash-{{.Kind}}" role="status">{{.Message}}</div>
+        {{- end}}
+
+        {{block "content" .}}{{end}}
+      </main>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="copyright">wgrouter {{.Version}} — WireGuard control panel</div>
+    <div class="customer">
+      <div class="domaname">
+        <ul>
+          <li>{{.WGInterface}} :{{.WGListenPort}}</li>
+          <li>•</li>
+          <li>endpoint {{.PublicEndpoint}}</li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+</div>
+<script src="/static/js/wgrouter.js" defer></script>
+</body>
+</html>
+{{- end}}

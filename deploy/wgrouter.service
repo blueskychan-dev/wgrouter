@@ -1,0 +1,65 @@
+[Unit]
+Description=wgrouter — WireGuard router control panel
+Documentation=https://github.com/your-org/wgrouter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/usr/local/bin/wgrouter
+
+# wgrouter needs CAP_NET_ADMIN to create the WireGuard interface, configure
+# peers, and program nftables. It does NOT need to be root: AmbientCapabilities
+# grants exactly that one capability to an unprivileged process, and
+# NoNewPrivileges stops it acquiring any more.
+User=wgrouter
+Group=wgrouter
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+NoNewPrivileges=yes
+
+# Configuration. Every flag has a WGROUTER_ environment equivalent; the only
+# required one is the public endpoint, which cannot be detected on a NAT'd host.
+Environment=WGROUTER_PUBLIC_ENDPOINT=vpn.example.com
+Environment=WGROUTER_DB=/var/lib/wgrouter/wgrouter.db
+Environment=WGROUTER_LOG_LEVEL=info
+# Defaults to the WireGuard interface address; set deliberately if that is wrong.
+#Environment=WGROUTER_LISTEN=10.10.0.1:8080
+#Environment=WGROUTER_TLS_CERT=/etc/wgrouter/cert.pem
+#Environment=WGROUTER_TLS_KEY=/etc/wgrouter/key.pem
+
+StateDirectory=wgrouter
+StateDirectoryMode=0750
+WorkingDirectory=/var/lib/wgrouter
+
+# Sandboxing. The service reads /proc/net for routing and counters, writes only
+# its state directory, and talks netlink; everything else is closed off.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectProc=invisible
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# AF_NETLINK is how we reach WireGuard and nftables; without it the service
+# cannot do its job. PrivateNetwork must stay off for the same reason.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

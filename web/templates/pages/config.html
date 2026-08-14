@@ -1,0 +1,57 @@
+{{define "title"}}Configuration File{{end}}
+{{define "heading"}}Configuration File Management{{end}}
+{{define "desc"}}Export the router's configuration to a file, or restore one.{{end}}
+
+{{define "content"}}
+<section class="table">
+  <h2 class="col-tbl-th">Export</h2>
+  <dl class="kv">
+    <div class="kv-row">
+      <dt class="col-l-260">Contents</dt>
+      <dd class="col-r">
+        {{.CountPeers}} device(s), {{.CountForwards}} forward(s) and the router's settings.
+        <p class="field-hint">Logs and connection statistics are deliberately excluded &mdash; they are a
+          record of what happened on this router, not configuration, and restoring them elsewhere
+          would fabricate history.</p>
+      </dd>
+    </div>
+    <div class="kv-row">
+      <dt class="col-l-260">Sensitivity</dt>
+      <dd class="col-r">
+        <span class="dot dot-never"></span><strong>Treat the file like the database.</strong>
+        <p class="field-hint">It contains the WireGuard server private key and every preshared key.
+          Without the server key a restored router cannot talk to any existing client, so it has to
+          be included &mdash; but anyone holding this file can impersonate the router.</p>
+      </dd>
+    </div>
+  </dl>
+  <div class="form-actions">
+    <a class="btn-def btn-primary" href="/admin/config/export">Download configuration</a>
+  </div>
+</section>
+
+<section class="table">
+  <h2 class="col-tbl-th">Restore</h2>
+  <form method="post" action="/admin/config/import" enctype="multipart/form-data" class="form"
+        onsubmit="return confirm('Restore this configuration? Every current device and port forward will be replaced.');">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <label class="col-l-260" for="backup">Configuration file</label>
+      <div class="col-r">
+        <input class="input" type="file" id="backup" name="backup" accept="application/json,.json" required>
+        <p class="field-hint">Replaces all devices and forwards. Your administrator account is not
+          touched, so a restore cannot lock you out or change who can sign in.</p>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-def btn-danger">Restore configuration</button>
+    </div>
+  </form>
+</section>
+
+<div class="milestone-note">
+  The restore runs as a single transaction: either the whole configuration is applied or none of it
+  is. The kernel is rebuilt from the result immediately, so the panel and the firewall never
+  disagree about what is in force.
+</div>
+{{end}}

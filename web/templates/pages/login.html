@@ -1,0 +1,23 @@
+{{define "title"}}Sign in{{end}}
+{{define "heading"}}Sign in{{end}}
+{{define "desc"}}Enter the administrator credentials for this router.{{end}}
+
+{{define "content"}}
+<section class="table narrow">
+  <h2 class="col-tbl-th">Administrator</h2>
+  <form method="post" action="/login" class="form">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    <div class="form-row">
+      <label class="col-l-260" for="username">Username</label>
+      <div class="col-r"><input class="input" type="text" id="username" name="username" autocomplete="username" required autofocus></div>
+    </div>
+    <div class="form-row">
+      <label class="col-l-260" for="password">Password</label>
+      <div class="col-r"><input class="input" type="password" id="password" name="password" autocomplete="current-password" required></div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn-def">Sign in</button>
+    </div>
+  </form>
+</section>
+{{end}}

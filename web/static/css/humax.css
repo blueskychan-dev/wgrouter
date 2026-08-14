@@ -1,0 +1,783 @@
+/* ============================================================================
+ * wgrouter — HUMAX-styled UI
+ *
+ * Implements the design language extracted in docs/DESIGN.md, on the tokens
+ * defined in tokens.css. Class names follow the original where practical
+ * (.header, .pro-logo, #menuDiv, .menu-def-2, .col-tbl-th, .col-l-260, .col-r,
+ * .col-list-th, .btn-def, .footer) so the mapping back to the source is
+ * legible.
+ *
+ * Two deliberate departures from the original, both argued in docs/DESIGN.md:
+ *
+ *   1. Layout uses flex/grid, not nested layout tables. The extracted design is
+ *      the LOOK -- fixed-width centered shell, blue band, 260px sidebar, 750px
+ *      content column, panel rhythm -- not the 2010-era technique for achieving
+ *      it. Real <table> is still used for genuinely tabular data.
+ *   2. Focus rings, real <th>/<label>/<h1>, and keyboard-operable controls are
+ *      ADDED. The original had none: of its 13 interactive controls exactly one
+ *      was keyboard-reachable (DESIGN.md section 10). Copying that would be
+ *      copying a defect, not a design.
+ * ========================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--hx-page-bg);
+}
+
+body {
+  margin: 0;
+  font-family: var(--hx-font);
+  font-size: var(--hx-fs-base);
+  line-height: var(--hx-line-height);
+  letter-spacing: var(--hx-letter-spacing);
+  color: var(--hx-text);
+}
+
+a {
+  color: var(--hx-link);
+}
+
+code,
+.key {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", "Liberation Mono", monospace;
+  font-size: 0.95em;
+  word-break: break-all;
+}
+
+.muted {
+  color: #8a8a8a;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Focus is an addition, not an extraction. Applied broadly and deliberately. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: var(--hx-focus-ring);
+  outline-offset: 1px;
+}
+
+/* --- Shell -------------------------------------------------------------
+ * The original centered a fixed 982px table. The declared width did not
+ * actually contain its own cells (260 + 750 = 1010), so we use the width the
+ * content genuinely needs rather than reproducing the arithmetic error. */
+
+#container {
+  min-width: min-content;
+}
+
+.header {
+  background: var(--hx-blue);
+}
+
+.header-inner,
+.body-grid,
+.footer {
+  width: calc(var(--hx-sidebar-w) + var(--hx-content-w) + (2 * var(--hx-space-40)));
+  margin: 0 auto;
+}
+
+.header-inner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--hx-space-20);
+  padding: var(--hx-space-14) var(--hx-space-20);
+}
+
+.pro-logo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.pro-logo-img {
+  font-size: var(--hx-fs-18);
+  font-weight: var(--hx-fw-bold);
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.pro-model {
+  font-size: var(--hx-fs-10);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* The original's header and footer link rows: a <ul> of <li> with literal
+ * bullet separators as their own list items. */
+.domaname ul {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hx-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pro-btn-box .domaname ul {
+  font-size: var(--hx-fs-10);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.inline-form {
+  display: inline;
+}
+
+/* A submit control that reads as a link, so logging out can be a POST without
+ * looking like a button. */
+.linkish {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: #fff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.main-td {
+  background: var(--hx-content-bg);
+}
+
+.body-grid {
+  display: flex;
+  align-items: stretch;
+  min-height: var(--hx-shell-min-h);
+}
+
+/* --- Sidebar navigation ------------------------------------------------- */
+
+#menuDiv {
+  flex: 0 0 var(--hx-sidebar-w);
+  width: var(--hx-sidebar-w);
+  background: var(--hx-sidebar-bg);
+}
+
+.body-grid-nonav {
+  justify-content: center;
+}
+
+.menu-top-spacer {
+  height: var(--hx-space-10);
+}
+
+.menu-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.menu-def-2,
+.menu-out-2 {
+  border-left: 3px solid transparent;
+}
+
+.menu-def-2 ul,
+.menu-out-2 ul {
+  display: flex;
+  align-items: center;
+  gap: var(--hx-space-8);
+  height: var(--hx-nav-row-h);
+  margin: 0;
+  padding: 0 var(--hx-space-10) 0 var(--hx-space-8);
+  list-style: none;
+}
+
+.menu-icon {
+  width: 16px;
+  text-align: center;
+  color: var(--hx-link);
+}
+
+.menu-label {
+  font-size: var(--hx-fs-12);
+  color: var(--hx-text);
+}
+
+.menu-def-2:hover {
+  background: var(--hx-nav-hover-bg);
+}
+
+/* The original marked the active item with a distinct resting class and a
+ * distinct icon file. We keep the distinct resting state. */
+.menu-out-2 {
+  background: var(--hx-nav-active-bg);
+  border-left-color: var(--hx-blue);
+}
+
+.menu-out-2 .menu-label {
+  font-weight: var(--hx-fw-bold);
+  color: var(--hx-text-dark);
+}
+
+/* --- Content column ----------------------------------------------------- */
+
+#contentDiv {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(var(--hx-content-w) + (2 * var(--hx-space-40)));
+  padding: var(--hx-space-15) var(--hx-space-40);
+}
+
+.page-title {
+  margin: 0;
+  font-size: var(--hx-fs-16);
+  font-weight: var(--hx-fw-bold);
+  color: var(--hx-text);
+}
+
+/* The original's title block rhythm: title, 5px, description, 30px. */
+.page-desc {
+  margin: var(--hx-space-5) 0 var(--hx-space-30) 0;
+  font-size: var(--hx-fs-10);
+  color: var(--hx-text);
+}
+
+.page-desc:empty {
+  margin-top: 0;
+}
+
+/* --- Panels ------------------------------------------------------------
+ * The original: a full-width borderless table whose first row is a section
+ * header cell, bracketed top and bottom by 9px spacer rows, followed by a
+ * <br> before the next panel. */
+
+.table {
+  display: block;
+  width: 100%;
+  margin: 0 0 var(--hx-space-20) 0;
+  background: var(--hx-panel-bg);
+  border: var(--hx-border);
+  border-radius: var(--hx-radius);
+}
+
+.table.narrow {
+  max-width: 520px;
+}
+
+.col-tbl-th {
+  margin: 0;
+  padding: var(--hx-space-8) var(--hx-space-10);
+  background: var(--hx-panel-th-bg);
+  border-bottom: var(--hx-border);
+  font-size: var(--hx-fs-12);
+  font-weight: var(--hx-fw-bold);
+  color: var(--hx-heading);
+}
+
+/* --- Key/value rows ----------------------------------------------------
+ * The original's col-l-260 / col-r pair, 46 of them on the Home page. */
+
+.kv {
+  margin: 0;
+  padding: var(--hx-space-9) 0;
+}
+
+.kv-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hx-space-10);
+  padding: var(--hx-space-5) var(--hx-space-10);
+}
+
+.kv-row + .kv-row {
+  border-top: 1px solid #f0f0f0;
+}
+
+.col-l-260 {
+  flex: 0 0 var(--hx-label-col-w);
+  width: var(--hx-label-col-w);
+  margin: 0;
+  color: var(--hx-text);
+}
+
+.col-r {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--hx-text-dark);
+}
+
+/* --- Data tables -------------------------------------------------------
+ * The original used <td class="col-list-th"><b>…</b></td> for headers and
+ * centered every body cell. We use real <th>, which is what it meant. */
+
+.list-table {
+  width: 100%;
+  margin: 0 0 var(--hx-space-20) 0;
+  border: var(--hx-border);
+  border-collapse: collapse;
+  background: var(--hx-panel-bg);
+}
+
+.col-list-th {
+  padding: var(--hx-space-8) var(--hx-space-10);
+  background: var(--hx-panel-th-bg);
+  border-bottom: var(--hx-border);
+  font-size: var(--hx-fs-12);
+  font-weight: var(--hx-fw-bold);
+  color: var(--hx-heading);
+  text-align: center;
+}
+
+.list-table tbody td {
+  padding: var(--hx-space-8) var(--hx-space-10);
+  border-bottom: 1px solid #f0f0f0;
+  text-align: center;
+}
+
+.list-table tbody tr:nth-child(even) {
+  background: var(--hx-row-alt-bg);
+}
+
+.list-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* --- Forms -------------------------------------------------------------
+ * NOTE: the source page contains no form controls at all -- not one input,
+ * select, checkbox, radio or label (docs/DESIGN.md section 11). Everything
+ * below is built to be consistent with the extracted geometry (the 260px label
+ * column, the 9px inset, the 1px #dcdcdc hairline, square corners) rather than
+ * copied from HUMAX, because there was nothing to copy. */
+
+.form {
+  padding: var(--hx-space-9) 0;
+}
+
+.form-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hx-space-10);
+  padding: var(--hx-space-5) var(--hx-space-10);
+}
+
+.form-row label.col-l-260 {
+  padding-top: 3px;
+}
+
+.input {
+  width: 100%;
+  max-width: 320px;
+  height: var(--hx-input-h);
+  padding: 0 var(--hx-input-pad-x);
+  border: var(--hx-input-border);
+  border-radius: var(--hx-radius);
+  background: var(--hx-input-bg);
+  font: inherit;
+  color: var(--hx-text-dark);
+}
+
+.input:disabled {
+  background: #f5f5f5;
+  color: #8a8a8a;
+}
+
+.field-hint {
+  margin: 4px 0 0 0;
+  font-size: var(--hx-fs-10);
+  color: #6f6f6f;
+}
+
+.form-actions {
+  padding: var(--hx-space-9) var(--hx-space-10);
+  text-align: right;
+}
+
+/* The original had exactly one button class, with no primary/secondary/danger
+ * distinction represented anywhere. We keep btn-def as the single default and
+ * add a danger variant only where destructive actions genuinely need one. */
+.btn-def {
+  min-height: var(--hx-btn-h);
+  padding: 0 var(--hx-btn-pad-x);
+  border: var(--hx-btn-border);
+  border-radius: var(--hx-radius);
+  background: var(--hx-btn-bg);
+  color: var(--hx-btn-fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn-def:hover {
+  filter: brightness(0.95);
+}
+
+.btn-def:disabled {
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  border-color: var(--hx-state-error);
+  background: var(--hx-state-error);
+}
+
+/* --- Status indicators -------------------------------------------------
+ * The original conveyed status through PNG artwork, not colour, and had no
+ * error or warning UI at all. These are placeholders on quarantined tokens;
+ * see docs/DESIGN.md section 3.3. */
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: baseline;
+}
+
+.dot-ok   { background: var(--hx-state-ok); }
+.dot-idle { background: var(--hx-state-idle); }
+.dot-none { background: var(--hx-state-none); }
+
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: var(--hx-radius);
+  font-size: var(--hx-fs-10);
+}
+
+.badge-ok   { color: var(--hx-state-ok); }
+.badge-warn { color: var(--hx-state-idle); }
+.badge-err  { color: var(--hx-state-error); }
+
+/* --- Messages ----------------------------------------------------------- */
+
+.flash,
+.notice {
+  margin: 0 0 var(--hx-space-20) 0;
+  padding: var(--hx-space-9) var(--hx-space-10);
+  border: var(--hx-border);
+  border-left-width: 3px;
+  border-radius: var(--hx-radius);
+  background: #fbfbfb;
+}
+
+.flash-ok      { border-left-color: var(--hx-state-ok); }
+.flash-error   { border-left-color: var(--hx-state-error); }
+.flash-info    { border-left-color: var(--hx-link); }
+.notice-warn   { border-left-color: var(--hx-state-idle); }
+
+/* --- Empty state -------------------------------------------------------
+ * The original's rhythm, reproduced exactly: 20px, icon, 30px, 18px bold
+ * headline, 9px, 13px body, 20px. */
+
+.empty-state {
+  margin: 0 0 var(--hx-space-20) 0;
+  padding: var(--hx-space-20) var(--hx-space-10);
+  border: var(--hx-border);
+  background: var(--hx-panel-bg);
+  text-align: center;
+}
+
+.empty-icon {
+  margin-bottom: var(--hx-space-30);
+  font-size: 32px;
+  color: #c9c9c9;
+}
+
+.empty-head {
+  margin: 0 0 var(--hx-space-9) 0;
+  font-size: var(--hx-fs-18);
+}
+
+.empty-body {
+  margin: 0 0 var(--hx-space-20) 0;
+  font-size: var(--hx-fs-13);
+}
+
+/* Scaffolding marker for screens whose data arrives in a later milestone.
+ * Intended to be deleted as each one lands. */
+.milestone-note {
+  margin-top: var(--hx-space-30);
+  padding: var(--hx-space-9) var(--hx-space-10);
+  border: 1px dashed var(--hx-hairline);
+  font-size: var(--hx-fs-10);
+  color: #6f6f6f;
+}
+
+/* --- Footer ------------------------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hx-space-20);
+  min-height: var(--hx-footer-h);
+  padding: 0 var(--hx-space-20);
+  background: var(--hx-footer-bg);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--hx-fs-10);
+}
+
+.footer a {
+  color: #fff;
+}
+
+/* --- Utility classes carried over from the original --------------------- */
+
+.f10 { font-size: var(--hx-fs-10); }
+.f12 { font-size: var(--hx-fs-12); }
+.f13 { font-size: var(--hx-fs-13); }
+.f16 { font-size: var(--hx-fs-16); }
+.f18 { font-size: var(--hx-fs-18); }
+
+.c464646 { color: var(--hx-text); }
+.c141414 { color: var(--hx-text-dark); }
+.c0a87e6 { color: var(--hx-link); }
+.c1e1e1e { color: var(--hx-heading); }
+
+.bold { font-weight: var(--hx-fw-bold); }
+
+/* --- Presence, provisioning and forwarding ------------------------------
+ * Added with the WireGuard and forwarding milestones. The dot colours reuse
+ * the same quarantined state tokens as .dot-ok/.dot-idle/.dot-none, because
+ * the source page conveyed status through PNG artwork and left no colour
+ * evidence at all (docs/DESIGN.md section 3.3). */
+
+.dot-online { background: var(--hx-state-ok); }
+.dot-never  { background: var(--hx-state-none); }
+.dot-off    { background: #c9c9c9; }
+
+/* A disabled row stays legible -- an administrator still needs to read it to
+ * decide whether to re-enable it -- but must not read as active. */
+.row-disabled td {
+  opacity: 0.55;
+}
+
+.cell-actions {
+  white-space: nowrap;
+}
+
+.cell-actions .inline-form + .inline-form {
+  margin-left: var(--hx-space-5);
+}
+
+.legend {
+  margin: var(--hx-space-9) 0 0 0;
+}
+
+.warn-note {
+  color: #8a6d00;
+}
+
+.narrow {
+  max-width: 120px;
+}
+
+.pad {
+  padding: var(--hx-space-9) var(--hx-space-10);
+}
+
+.wrap {
+  word-break: break-all;
+}
+
+/* Only the help text for the selected source mode is shown; the rest are
+ * revealed by static/js/wgrouter.js as the selection changes. Without
+ * JavaScript every option's caveat is visible, which is verbose but never
+ * hides a warning -- the failure mode that matters here. */
+.mode-help[hidden] {
+  display: none;
+}
+
+/* --- One-time device configuration -------------------------------------- */
+
+.newdev {
+  border-color: var(--hx-state-ok);
+}
+
+.newdev-warn {
+  padding: var(--hx-space-9) var(--hx-space-10);
+  border-bottom: var(--hx-border);
+  background: #fffbe6;
+  font-size: var(--hx-fs-12);
+}
+
+.newdev-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hx-space-20);
+  padding: var(--hx-space-10);
+}
+
+.newdev-conf {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.newdev-qr {
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.newdev-qr img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: var(--hx-border);
+  background: #fff;
+}
+
+.newdev-actions {
+  margin: var(--hx-space-9) 0 0 0;
+  display: flex;
+  gap: var(--hx-space-8);
+  flex-wrap: wrap;
+}
+
+/* The config is a credential: it is selectable and copyable, but it must not
+ * silently reflow in a way that changes what someone thinks they copied. */
+.conf {
+  margin: 0;
+  padding: var(--hx-space-9) var(--hx-space-10);
+  border: var(--hx-border);
+  background: #fbfbfb;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: var(--hx-fs-12);
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* The source panel had exactly one button style. btn-primary exists only so
+ * the single affirmative action on a form is distinguishable from the
+ * per-row Enable/Disable buttons around it. */
+.btn-primary {
+  border-color: var(--hx-blue);
+  background: var(--hx-blue);
+  color: #fff;
+}
+
+/* --- Meters and diagnostics --------------------------------------------
+ * The source panel had a progress meter (docs/DESIGN.md section 7), but its
+ * appearance lived in PNG artwork that was not saved. This reproduces the
+ * geometry -- a thin inset bar the width of the value column -- on quarantined
+ * colour tokens. */
+
+.meter {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: 10px;
+  margin-bottom: var(--hx-space-5);
+  border: var(--hx-border);
+  border-radius: var(--hx-radius);
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--hx-blue);
+  transition: width var(--hx-transition);
+}
+
+.diag-out {
+  margin: var(--hx-space-10);
+  border-top: var(--hx-border);
+  padding-top: var(--hx-space-10);
+}
+
+.diag-head {
+  margin: 0 0 var(--hx-space-8) 0;
+  font-weight: var(--hx-fw-bold);
+}
+
+/* Only the selected tool's help is shown; wgrouter.js narrows it. Without
+ * scripting every tool's description is visible, which is verbose but never
+ * hides information. */
+.diag-help[hidden] {
+  display: none;
+}
+
+/* --- Navigation group --------------------------------------------------
+ * The source panel's sidebar was a flat list of eight, so there is nothing to
+ * copy for a nested group. This reuses the extracted row geometry (36px rows,
+ * the 8px icon gutter) and indents children rather than inventing a new
+ * treatment. */
+
+.menu-group summary {
+  display: block;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* Three rules, because engines disagree: WebKit uses its own pseudo-element,
+ * Firefox and modern Chrome use ::marker, and list-style covers the rest.
+ * Missing one leaves the browser's own triangle next to our caret -- two
+ * arrows on one row, which is exactly as confusing as it sounds. */
+.menu-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-group summary::marker {
+  content: "";
+}
+
+.menu-caret {
+  float: right;
+  padding-right: var(--hx-space-10);
+  font-size: var(--hx-fs-10);
+  transition: transform var(--hx-transition);
+}
+
+.menu-group[open] .menu-caret {
+  transform: rotate(180deg);
+}
+
+.menu-child .menu-label {
+  padding-left: var(--hx-space-30);
+}
+
+/* --- Admin screens ------------------------------------------------------ */
+
+.danger-zone {
+  border-color: var(--hx-state-error);
+}
+
+.danger-zone .col-tbl-th {
+  color: var(--hx-state-error);
+}
+
+.filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hx-space-8) var(--hx-space-20);
+  padding: var(--hx-space-5) 0;
+}
+
+.filter-grid label {
+  display: flex;
+  align-items: center;
+  gap: var(--hx-space-5);
+  min-width: 180px;
+}
+
+.log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hx-space-8);
+  padding: var(--hx-space-9) var(--hx-space-10);
+}
+
+.log-actions form {
+  display: inline;
+}
+
+.policy-help[hidden] {
+  display: none;
+}
+
+.routing-help[hidden] {
+  display: none;
+}
