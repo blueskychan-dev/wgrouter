@@ -826,3 +826,57 @@ func TestTunnelOnlyConfigKeepsItsQRCode(t *testing.T) {
 		t.Error("the QR code disappeared from an ordinary config")
 	}
 }
+
+// Reverse-path filtering is the failure that looks like success: a recent
+// handshake, zero traffic, nothing logged. It belongs in the warning box next
+// to the one-time key notice, not only in the config comments someone reads
+// after they are already stuck.
+func TestDirectWarningBoxCoversReversePathFiltering(t *testing.T) {
+	h := signedIn(t)
+	page := body(t, h.addDevice("srv", url.Values{"routing": {"direct"}}))
+
+	box := warningBox(t, page)
+	for _, want := range []string{
+		"only time this configuration is shown",
+		"Direct-mode config",
+		"reverse-path filtering",
+		"sysctl net.ipv4.conf.all.rp_filter",
+		"rp_filter=1",
+	} {
+		if !strings.Contains(strings.ToLower(box), strings.ToLower(want)) {
+			t.Errorf("the warning box does not mention %q", want)
+		}
+	}
+}
+
+// A plain config's warning box stays short: it has none of these problems, and
+// padding it with irrelevant troubleshooting is how people stop reading it.
+func TestPlainWarningBoxStaysShort(t *testing.T) {
+	h := signedIn(t)
+	box := warningBox(t, body(t, h.addDevice("phone", nil)))
+
+	if !strings.Contains(box, "only time this configuration is shown") {
+		t.Error("the one-time warning is missing")
+	}
+	for _, unwanted := range []string{"rp_filter", "Table = off", "wg-quick"} {
+		if strings.Contains(box, unwanted) {
+			t.Errorf("an ordinary config's warning box mentions %q", unwanted)
+		}
+	}
+}
+
+// warningBox extracts the yellow banner above the generated config.
+func warningBox(t *testing.T, page string) string {
+	t.Helper()
+	const open = `<div class="newdev-warn">`
+	i := strings.Index(page, open)
+	if i < 0 {
+		t.Fatal("no warning box on the page")
+	}
+	rest := page[i+len(open):]
+	j := strings.Index(rest, "</div>")
+	if j < 0 {
+		t.Fatal("unterminated warning box")
+	}
+	return rest[:j]
+}

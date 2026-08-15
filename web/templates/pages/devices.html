@@ -13,9 +13,18 @@
     <strong>This is the only time this configuration is shown.</strong>
     The private key is generated on the router, handed to you once and never
     stored. If you lose it, delete the device and add it again.
-    {{if .NewDevice.Direct}}<br><strong>Direct-mode config:</strong> it sets <code>Table = off</code>
+    {{if .NewDevice.Direct}}<br><br><strong>Direct-mode config:</strong> it sets <code>Table = off</code>
     and installs its own policy routing, so the device keeps its normal internet route. Import it
-    with <code>wg-quick</code> on Linux; the <code>PostUp</code> hooks will not run on a phone.{{end}}
+    with <code>wg-quick</code> on Linux; the <code>PostUp</code> hooks will not run on a phone.
+    <br><br>
+    <strong>Check reverse-path filtering on that device.</strong> Run:
+    <br><code>sysctl net.ipv4.conf.all.rp_filter net.ipv4.conf.{{$.WGInterface}}.rp_filter</code><br>
+    The effective value is the higher of the two. If it is <code>1</code> (strict), inbound packets
+    carrying real client addresses are dropped without a log line &mdash; the tunnel handshakes,
+    shows a recent handshake time here, and passes no traffic at all. Most distributions ship
+    <code>net.ipv4.conf.default.rp_filter=1</code>, which a newly created interface inherits, so
+    this is the common case rather than the unusual one. The fix is in the config below as two
+    commented-out <code>PostUp</code> lines.{{end}}
   </div>
   <div class="newdev-body">
     <div class="newdev-conf">
@@ -201,6 +210,11 @@
           <code>ip&nbsp;route</code>/<code>ip&nbsp;rule</code> commands, which phone clients cannot run.
           <br><br>
           Baked into the config at creation and not changeable later.
+          <br><br>
+          <strong>If it handshakes and then passes nothing, check reverse-path filtering first.</strong>
+          Most distributions ship <code>net.ipv4.conf.default.rp_filter=1</code>, which a new
+          <code>wg0</code> inherits, and strict mode drops the inbound packets silently. The
+          generated config explains the check and carries the fix as commented-out lines.
         </p>
       </div>
     </div>

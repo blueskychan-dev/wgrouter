@@ -87,10 +87,21 @@ the binary, acquires CAP_NET_ADMIN via sudo if the shell does not already hold
 it, and passes signals straight through so Ctrl-C shuts down cleanly:
 
 ```sh
-./run.sh                                   # defaults
+./run.sh                                   # detects the public address
+PUBLIC_ENDPOINT=vpn.example.com ./run.sh   # skip the lookup
 LISTEN=10.10.0.1:8080 ./run.sh             # bind inside the tunnel
-CLIENT_ALLOWED_IPS=0.0.0.0/0 ./run.sh      # needed for direct-mode forwards
 ```
+
+With `PUBLIC_ENDPOINT` unset, `run.sh` asks a public API what this host looks
+like from outside — `checkip.amazonaws.com`, then `api.ipify.org`, then
+`icanhazip.com`, overridable with `IP_LOOKUP_URLS`. The answer is validated as
+a routable unicast IPv4 address before use: it becomes the `Endpoint` in every
+client config handed out, so a captive portal or a service returning HTML must
+not be able to bake a dead endpoint into them.
+
+This is a request to a third party, which the script says out loud. The daemon
+itself never makes it — a router that needs an external service to reach before
+it can start is a router that does not come back after a power cut.
 
 Overridable: `PUBLIC_ENDPOINT`, `LISTEN`, `DB`, `LOG_LEVEL`, `WG_INTERFACE`,
 `WG_LISTEN_PORT`, `TUNNEL_POOL`, `CLIENT_ALLOWED_IPS`, `TLS_CERT`, `TLS_KEY`.
@@ -183,6 +194,14 @@ wgrouter makes the tradeoff explicit, per forward:
 
 Two failure modes worth knowing before you pick:
 
+- **Direct** also depends on the client's reverse-path filtering. Packets arrive
+  on the tunnel carrying arbitrary internet source addresses, and under strict
+  `rp_filter` the kernel drops them silently — the tunnel handshakes and then
+  passes nothing. Most distributions ship
+  `net.ipv4.conf.default.rp_filter=1`, which a newly created `wg0` inherits.
+  Generated direct-mode configs explain the check and carry the fix as
+  commented-out lines; loosening source validation is left as the operator's
+  decision rather than made for them.
 - **Direct** depends on the peer's return path. If the peer's default route is
   its own LAN, replies leave the wrong way and the connection hangs. Asymmetric
   routing looks exactly like a firewall drop, so the UI shows each peer's

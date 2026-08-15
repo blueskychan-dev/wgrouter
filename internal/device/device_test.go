@@ -374,3 +374,58 @@ func TestTunnelOnlyConfigFitsInAQRCode(t *testing.T) {
 		t.Errorf("the ordinary config no longer encodes as a QR code: %v", err)
 	}
 }
+
+// Reverse-path filtering is the failure this mode hits most often, and it is
+// silent: the tunnel handshakes and then passes nothing. The config has to say
+// so, and has to carry the check and the fix.
+func TestDirectModeExplainsReversePathFiltering(t *testing.T) {
+	got, err := Render(directParams())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, want := range []string{
+		"rp_filter",
+		"sysctl net.ipv4.conf.all.rp_filter",
+		"net.ipv4.conf.%i.rp_filter=2",
+		"max(all, %i)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the direct config does not mention %q", want)
+		}
+	}
+}
+
+// Loosening source validation is a security decision about the operator's own
+// machine. The generated file must describe it, not make it.
+func TestReversePathFixIsCommentedOut(t *testing.T) {
+	got, err := Render(directParams())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(got, "\n") {
+		l := strings.TrimSpace(line)
+		if !strings.Contains(l, "rp_filter") {
+			continue
+		}
+		// Any line that would actually execute must not touch rp_filter.
+		if strings.HasPrefix(l, "PostUp") || strings.HasPrefix(l, "PreDown") {
+			t.Errorf("an active hook changes rp_filter without being asked:\n  %s", l)
+		}
+	}
+	// And 0 must never be suggested: loose still validates, off does not.
+	if strings.Contains(got, "rp_filter=0") {
+		t.Error("the config suggests disabling source validation entirely")
+	}
+}
+
+// A plain config has nothing to do with any of this.
+func TestTunnelOnlyDoesNotMentionRPFilter(t *testing.T) {
+	got, err := Render(validParams())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(got, "rp_filter") {
+		t.Error("an ordinary config carries direct-mode troubleshooting")
+	}
+}
