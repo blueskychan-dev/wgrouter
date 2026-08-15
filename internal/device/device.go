@@ -141,6 +141,35 @@ PostUp = ip rule add from {{.ClientAddress}} lookup {{.RouteTable}} priority {{.
 # LAN address, not {{.ClientAddress}}, so they miss the rule above and take the
 # main table as normal.
 
+# ---------------------------------------------------------------------------
+# IF THE TUNNEL HANDSHAKES AND THEN PASSES NOTHING, START HERE.
+#
+# Reverse-path filtering is the most likely cause, and it fails silently.
+# Packets arrive on %i carrying arbitrary real internet source addresses. Under
+# strict rp_filter the kernel asks "would I route back to this source via %i?".
+# The policy rule above is meant to make that answer yes -- the reverse lookup
+# is done with the addresses swapped, so "from {{.ClientAddress}}" matches and
+# resolves through table {{.RouteTable}} to %i -- but whether the reverse check
+# consults ip rules at all has varied across kernel versions. When it does not,
+# the main table answers "out the LAN interface", the packet is dropped, and
+# nothing is logged.
+#
+# Check the effective value. It is max(all, %i), so read both:
+#   sysctl net.ipv4.conf.all.rp_filter net.ipv4.conf.%i.rp_filter
+# 1 is strict, 2 is loose, 0 is off. Many distributions ship
+# net.ipv4.conf.default.rp_filter=1, which a newly created %i inherits.
+#
+# To relax it, uncomment these. Loose mode still drops packets from sources
+# that are unroutable by any path, so it is a far smaller change than turning
+# source validation off entirely -- do not use 0.
+#PostUp = sysctl -w net.ipv4.conf.all.rp_filter=2
+#PostUp = sysctl -w net.ipv4.conf.%i.rp_filter=2
+#
+# They are commented out because loosening source validation is a security
+# decision about your machine, not something a generated file should make on
+# your behalf.
+# ---------------------------------------------------------------------------
+
 # The "|| true" guards are mandatory. wg-quick runs with "set -e" and runs
 # PreDown BEFORE deleting the interface, so one failing line aborts the
 # whole teardown: the interface stays up, stale rules survive, and every
@@ -164,6 +193,11 @@ PersistentKeepalive = {{.Keepalive}}
 #   ip rule show                                  -> {{.RulePriority}}: from {{.ClientAddress}} lookup {{.RouteTable}}
 #   ip route get 1.1.1.1                          -> your LAN interface, internet unaffected
 #   ip route get 1.1.1.1 from {{.ClientAddress}}  -> dev %i, replies use the tunnel
+#   sysctl net.ipv4.conf.all.rp_filter net.ipv4.conf.%i.rp_filter
+#
+# A real test needs an out-of-pool client. "ss -tn" on this host should show
+# that client's ACTUAL address, and the session should complete rather than
+# hang after the handshake.
 #
 # Only one peer per interface can hold 0.0.0.0/0, since AllowedIPs doubles as
 # the outbound selector. A second direct-mode uplink needs its own interface,
